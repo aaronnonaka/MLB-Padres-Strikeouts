@@ -13,3 +13,5 @@ Usage:
 - enter number of recent Padres game to check
 - Application will display each game and if enough strikeouts were obtained to have the Petco discount
 - Can repeat process with different number of games, if desired
+
+<img width="1050" height="132" alt="image" src="https://github.com/user-attachments/assets/21182078-e162-4a85-818b-5ea20bd78d7c" />
