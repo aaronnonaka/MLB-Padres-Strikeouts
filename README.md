@@ -14,8 +14,5 @@ Usage:
 - Application will display each game and if enough strikeouts were obtained to have the Petco discount
 - Can repeat process with different number of games, if desired
 
-<img width="1047" height="128" alt="image" src="https://github.com/user-attachments/assets/72d1c760-95a8-4b37-9ea7-df9205de90f7" />
-
-<img width="1040" height="285" alt="image" src="https://github.com/user-attachments/assets/28df9c14-45a2-4740-a480-591f11972367" />
-
+Example:
 <img width="1042" height="417" alt="image" src="https://github.com/user-attachments/assets/22d0ec86-69e4-4428-a8ff-8f47ba7476a3" />
