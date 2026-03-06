@@ -8,6 +8,8 @@ Features:
 - Pulls the game IDs from most recent games
 - Easy to modify for collection of other stats and functionalities
 
-Requirements:
-Python 3
-mlbstatsapi library - "pip install python-mlb-statsapi"
+Usage:
+- Run main script
+- enter number of recent Padres game to check
+- Application will display each game and if enough strikeouts were obtained to have the Petco discount
+- Can repeat process with different number of games, if desired
