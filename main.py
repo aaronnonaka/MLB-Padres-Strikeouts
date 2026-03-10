@@ -1,5 +1,7 @@
 import mlbstatsapi
 from datetime import date, datetime, timedelta, timezone
+import streamlit as st
+
 
 mlb = mlbstatsapi.Mlb()
 
@@ -85,10 +87,29 @@ def checkDiscount(num_games):
             print('No Petco discount.\n')
 
 
+""" ### code in terminal
 def main():
     num_games = userInput()
     checkDiscount(num_games)
     userContinue()
+"""
+
+### code in streamlit web app
+def main():
+    st.set_page_config(page_title='Padres Strikeout Application', page_icon='⚾')
+    st.title('Padres Strikeout and Petco Discount Checker')
+    st.write('Determine if Petco will have a store-wide discount based on the Padres strikeout performance.')    
+    st.write('Petco offers a 25% discount the day after the Padres score 9 or more strikeouts in their game.')
+    
+    # function for setting beginning and end dates for search parameters
+
+    st.text_input('Enter the number of games you wish to look back to:', key='num_games')
+    if st.session_state.num_games:
+        st.write(f'Checking Padres last {st.session_state.num_games} games for strikeout data...')
+        # function for searching games, getting strikeouts, and displaying results
+
+    # function for searching for next scheduled game
+
 
 
 if __name__ == '__main__':
