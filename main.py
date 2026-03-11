@@ -2,6 +2,12 @@ import mlbstatsapi
 from datetime import date, datetime, timedelta, timezone
 import streamlit as st
 
+# initialize session states and others
+if 'beginning_date' not in st.session_state:
+    st.session_state.beginning_date = '2025-03-18' # start of 2025 season
+if 'end_date' not in st.session_state:
+    st.session_state.end_date = str(date.today())
+
 
 mlb = mlbstatsapi.Mlb()
 
@@ -10,8 +16,8 @@ mlb = mlbstatsapi.Mlb()
 def getPadresGames(num_games=5):
     schedule = mlb.get_schedule(
         team_id=135,                # Padres team id is 135
-        start_date='2025-03-18',    # start of 2025 season
-        end_date=str(date.today()),
+        start_date=st.session_state.beginning_date,    # start of 2025 season, default
+        end_date=st.session_state.end_date,        # current date
         game_type='R',
         sport_id=1
     )
@@ -26,7 +32,6 @@ def getPadresGames(num_games=5):
     games = games[-num_games:]
     return games
 
-
 ### determines if Padres were home/away and returns number of team strikeouts
 ### returns padres strikeouts, and the team names
 def getPadresStrikeouts(game_id):
@@ -40,38 +45,13 @@ def getPadresStrikeouts(game_id):
     away = boxscore.teams.away.team.name
     return [k, home, away]
 
-
-### handles user input for number of games to look at
-### returns number of games as an integer
-def userInput():
-    while True:
-        try:
-            num_games = int(input('Enter the number of games you wish to look back to: '))
-            break
-        except ValueError:
-            print('Input must be an Integer value.')
-            continue
-    return num_games
-
-
-### handles continuation of program calling for different number of games
-def userContinue():
-    while True:
-        user_continue = input('Would you like to check a different number of games? (y/n): ')
-        if user_continue.lower() == 'y':
-            num_games = userInput()
-            checkDiscount(num_games)
-        elif user_continue.lower() == 'n':
-            print('Thank you! Good day')
-            break
-        else:
-            print("Invalid input. Please enter 'y' or 'n'.")
-            continue
-
-
 ### main calculation of availability of Petco discount
 def checkDiscount(num_games):
     games = getPadresGames(num_games)    # searching for strikeouts in Padres most recent game
+    # schedule of games returned not as many as user request
+    if len(games) < num_games:
+        st.markdown(f'**Only {len(games)} games found for the Padres in that time frame.**')
+        num_games = len(games)
     for n in range(num_games):
         game_id = games[n].games[0].game_pk # game_pk same as game_id
         game_date = games[n].games[0].game_date
@@ -79,36 +59,79 @@ def checkDiscount(num_games):
         purchase_date = game_date + timedelta(days=1)
 
         k, home, away = getPadresStrikeouts(game_id)
-        print(f'{game_date.date()} - {away} at {home}: \nPadres score {k} strikeouts', end=" | ") 
+        #st.markdown(f'{game_date.date()} - {away} at {home}: Padres scored **{k}** strikeouts.')
+        st.session_state.results.markdown(
+            f'{game_date.date()} - {away} at {home}: Padres scored **{k}** strikeouts.')
         if k >= 9:
-            purchase_date = purchase_date.strftime("%B %d, %Y")
-            print(f'Petco will have 25% for all of {purchase_date}!\n')
+            print_purchase_date = purchase_date.strftime("%B %d, %Y")
+            if purchase_date.date() == date.today():
+                #st.write('Petco will have a 25% discount for all of today, {print_purchase_date}!')
+                st.session_state.results.write(
+                    f'Petco will have a 25% discount for all of today, {print_purchase_date}!')
+            else:
+                #st.write(f'Petco had a 25% discount on {print_purchase_date}.')
+                st.session_state.results.write(
+                    f'Petco had a 25% discount on {print_purchase_date}.')
         else:
-            print('No Petco discount.\n')
+            #st.write('Not enough strikeouts, no K-9 Petco discount.')
+            st.session_state.results.write('Not enough strikeouts, no K-9 Petco discount.')
+        st.session_state.results.divider()
 
+### get beginning and end dates for search, has default parameters
+def getDates():
+    col1, col2 = st.columns(2, vertical_alignment='bottom')
+    with col1:
+        st.date_input('Beginning date of search (default is start of 2025 season, 03/18/2025):', 
+                    key='beginning_date',
+                    format='MM/DD/YYYY',
+                    min_value = date(2025, 3, 18),
+                    max_value = st.session_state.end_date)
+    with col2:
+        st.date_input(f'End date of search (default is current date, {date.today().strftime("%m/%d/%Y")}):',
+                    key='end_date',
+                    format='MM/DD/YYYY',
+                    min_value = st.session_state.beginning_date,
+                    max_value = date.today())
 
-""" ### code in terminal
-def main():
-    num_games = userInput()
-    checkDiscount(num_games)
-    userContinue()
-"""
-
+### check future scheduled games for Padres
+def checkSchedule():
+    return
 ### code in streamlit web app
 def main():
-    st.set_page_config(page_title='Padres Strikeout Application', page_icon='⚾')
+    st.set_page_config(page_title='Padres Strikeout Application', page_icon='⚾', layout='centered')
+    
+    st.html("""
+    <style>
+        .stMainBlockContainer {
+            max-width:60rem;
+        }
+    </style>
+    """
+    )
+    
     st.title('Padres Strikeout and Petco Discount Checker')
     st.write('Determine if Petco will have a store-wide discount based on the Padres strikeout performance.')    
     st.write('Petco offers a 25% discount the day after the Padres score 9 or more strikeouts in their game.')
     
-    # function for setting beginning and end dates for search parameters
+    ### function for setting beginning and end dates for search parameters
+    getDates()
 
+    ### function for searching games, getting strikeouts, and displaying results
     st.text_input('Enter the number of games you wish to look back to:', key='num_games')
     if st.session_state.num_games:
         st.write(f'Checking Padres last {st.session_state.num_games} games for strikeout data...')
-        # function for searching games, getting strikeouts, and displaying results
+        st.session_state.results = st.expander('Results')
+        checkDiscount(int(st.session_state.num_games))
 
-    # function for searching for next scheduled game
+    ### function for searching for next scheduled game
+    st.markdown('#')
+    st.header('Check the schedule for upcoming games.')
+    st.text_input('Enter the number of games you wish to search ahead for:', key='num_sched')
+    if st.session_state.num_sched:
+        st.write(f'Checking for the Padres next {st.session_state.num_sched} scheduled games...')
+        st.session_state.sched = st.expander('Scheduled Games')
+    # set start date for today, and end date a year(?) from now (should be enough time)
+    # take user input same as before and use that input to find x num future scheduled games
 
 
 
