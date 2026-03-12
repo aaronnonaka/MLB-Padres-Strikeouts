@@ -1,10 +1,12 @@
 import mlbstatsapi
 from datetime import date, datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 import streamlit as st
 
 # initialize session states and others
 if 'beginning_date' not in st.session_state:
     st.session_state.beginning_date = '2025-03-18' # start of 2025 season
+    # change to start of 2026 season, 2026-03-26
 if 'end_date' not in st.session_state:
     st.session_state.end_date = str(date.today())
 
@@ -21,6 +23,8 @@ def getPadresGames(num_games=5):
         game_type='R',
         sport_id=1
     )
+    if schedule == None:
+        return None
     games = [g for g in schedule.dates]
 
     # check if most recent game on schedule has happened yet or not,
@@ -48,6 +52,9 @@ def getPadresStrikeouts(game_id):
 ### main calculation of availability of Petco discount
 def checkDiscount(num_games):
     games = getPadresGames(num_games)    # searching for strikeouts in Padres most recent game
+    if games == None:
+        st.markdown('No games found in this time frame.')
+        return
     # schedule of games returned not as many as user request
     if len(games) < num_games:
         st.markdown(f'**Only {len(games)} games found for the Padres in that time frame.**')
@@ -56,24 +63,21 @@ def checkDiscount(num_games):
         game_id = games[n].games[0].game_pk # game_pk same as game_id
         game_date = games[n].games[0].game_date
         game_date = datetime.fromisoformat(game_date)
+        local_date = game_date.astimezone(ZoneInfo('America/Los_Angeles'))
         purchase_date = game_date + timedelta(days=1)
 
         k, home, away = getPadresStrikeouts(game_id)
-        #st.markdown(f'{game_date.date()} - {away} at {home}: Padres scored **{k}** strikeouts.')
         st.session_state.results.markdown(
-            f'{game_date.date()} - {away} at {home}: Padres scored **{k}** strikeouts.')
+            f'{local_date.date()} - {away} at {home}: Padres scored **{k}** strikeouts.')
         if k >= 9:
             print_purchase_date = purchase_date.strftime("%B %d, %Y")
             if purchase_date.date() == date.today():
-                #st.write('Petco will have a 25% discount for all of today, {print_purchase_date}!')
                 st.session_state.results.write(
                     f'Petco will have a 25% discount for all of today, {print_purchase_date}!')
             else:
-                #st.write(f'Petco had a 25% discount on {print_purchase_date}.')
                 st.session_state.results.write(
                     f'Petco had a 25% discount on {print_purchase_date}.')
         else:
-            #st.write('Not enough strikeouts, no K-9 Petco discount.')
             st.session_state.results.write('Not enough strikeouts, no K-9 Petco discount.')
         st.session_state.results.divider()
 
@@ -94,21 +98,41 @@ def getDates():
                     max_value = date.today())
 
 ### check future scheduled games for Padres
-def checkSchedule():
-    return
+def checkSchedule(num_sched):
+    schedule = mlb.get_schedule(
+        team_id=135,                # Padres team id is 135
+        start_date=date.today(),    # start of 2025 season, default
+        end_date='2026-09-27',      # last game of 2026 season
+        game_type='R',
+        sport_id=1
+    )
+    if schedule == None:
+        st.markdown('No games found in this time frame.')
+        return
+    games = [g for g in schedule.dates]
+    if len(games) < num_sched:
+        st.markdown(f'**Only {len(games)} games found scheduled for the Padres through the 2026 season.**')
+        num_sched = len(games)
+    for n in range(num_sched):
+        game_id = games[n].games[0].game_pk # game_pk same as game_id
+        game_date = games[n].games[0].game_date
+        game_date = datetime.fromisoformat(game_date) # date is UTC, convert to local time for display
+        local_date = game_date.astimezone(ZoneInfo('America/Los_Angeles'))
+
+        k, home, away = getPadresStrikeouts(game_id)
+        st.session_state.sched.markdown(
+            f'{local_date.date()} - {away} at {home}.')
+    
 ### code in streamlit web app
 def main():
     st.set_page_config(page_title='Padres Strikeout Application', page_icon='⚾', layout='centered')
-    
     st.html("""
     <style>
         .stMainBlockContainer {
             max-width:60rem;
         }
     </style>
-    """
-    )
-    
+    """)
     st.title('Padres Strikeout and Petco Discount Checker')
     st.write('Determine if Petco will have a store-wide discount based on the Padres strikeout performance.')    
     st.write('Petco offers a 25% discount the day after the Padres score 9 or more strikeouts in their game.')
@@ -117,7 +141,7 @@ def main():
     getDates()
 
     ### function for searching games, getting strikeouts, and displaying results
-    st.text_input('Enter the number of games you wish to look back to:', key='num_games')
+    st.number_input('Enter the number of games you wish to look back to:', step=1, key='num_games')
     if st.session_state.num_games:
         st.write(f'Checking Padres last {st.session_state.num_games} games for strikeout data...')
         st.session_state.results = st.expander('Results')
@@ -126,13 +150,11 @@ def main():
     ### function for searching for next scheduled game
     st.markdown('#')
     st.header('Check the schedule for upcoming games.')
-    st.text_input('Enter the number of games you wish to search ahead for:', key='num_sched')
+    st.number_input('Enter the number of games you wish to search ahead for:', step=1,key='num_sched')
     if st.session_state.num_sched:
         st.write(f'Checking for the Padres next {st.session_state.num_sched} scheduled games...')
         st.session_state.sched = st.expander('Scheduled Games')
-    # set start date for today, and end date a year(?) from now (should be enough time)
-    # take user input same as before and use that input to find x num future scheduled games
-
+        checkSchedule(int(st.session_state.num_sched))
 
 
 if __name__ == '__main__':
