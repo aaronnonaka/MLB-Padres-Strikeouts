@@ -64,7 +64,7 @@ def checkDiscount(num_games):
         game_date = games[n].games[0].game_date
         game_date = datetime.fromisoformat(game_date)
         local_date = game_date.astimezone(ZoneInfo('America/Los_Angeles'))
-        purchase_date = game_date + timedelta(days=1)
+        purchase_date = local_date + timedelta(days=1)
 
         k, home, away = getPadresStrikeouts(game_id)
         st.session_state.results.markdown(
