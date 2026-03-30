@@ -5,8 +5,7 @@ import streamlit as st
 
 # initialize session states and others
 if 'beginning_date' not in st.session_state:
-    st.session_state.beginning_date = '2025-03-18' # start of 2025 season
-    # change to start of 2026 season, 2026-03-26
+    st.session_state.beginning_date = '2026-03-26' # start of 2026 season
 if 'end_date' not in st.session_state:
     st.session_state.end_date = str(date.today())
 
@@ -85,10 +84,10 @@ def checkDiscount(num_games):
 def getDates():
     col1, col2 = st.columns(2, vertical_alignment='bottom')
     with col1:
-        st.date_input('Beginning date of search (default is start of 2025 season, 03/18/2025):', 
+        st.date_input('Beginning date of search (default is start of 2026 season, 03/26/2026):', 
                     key='beginning_date',
                     format='MM/DD/YYYY',
-                    min_value = date(2025, 3, 18),
+                    min_value = st.session_state.beginning_date,
                     max_value = st.session_state.end_date)
     with col2:
         st.date_input(f'End date of search (default is current date, {date.today().strftime("%m/%d/%Y")}):',
@@ -101,7 +100,7 @@ def getDates():
 def checkSchedule(num_sched):
     schedule = mlb.get_schedule(
         team_id=135,                # Padres team id is 135
-        start_date=date.today(),    # start of 2025 season, default
+        start_date=date.today(),    # today's date, default
         end_date='2026-09-27',      # last game of 2026 season
         game_type='R',
         sport_id=1
